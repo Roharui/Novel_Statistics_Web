@@ -1,21 +1,21 @@
-import { Column, Entity } from "typeorm";
-import { BaseEntity } from "./base-entity";
+import { Column, Entity } from 'typeorm';
+import { BaseEntity } from './base-entity';
 
 export enum PlatformType {
-  NOVELPIA="novelpia",
-  MUNPIA="munpia",
-  KAKAOPAGE="kakaopage",
+  NOVELPIA = 'novelpia',
+  MUNPIA = 'munpia',
+  KAKAOPAGE = 'kakaopage',
 }
 
-@Entity("novel")
-export class NovelEntity extends BaseEntity{
+@Entity('novel')
+export class NovelEntity extends BaseEntity {
   @Column()
   title: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: PlatformType,
-    default: PlatformType.NOVELPIA
+    default: PlatformType.NOVELPIA,
   })
   type: PlatformType;
 
@@ -24,10 +24,10 @@ export class NovelEntity extends BaseEntity{
 
   @Column()
   view: number;
-  
+
   @Column()
   good: number;
-  
+
   @Column()
   book: number;
 

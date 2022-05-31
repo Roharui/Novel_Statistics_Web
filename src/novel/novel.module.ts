@@ -7,6 +7,6 @@ import { NovelService } from './novel.service';
 @Module({
   imports: [TypeOrmModule.forFeature([NovelEntity])],
   controllers: [NovelController],
-  providers: [NovelService]
+  providers: [NovelService],
 })
 export class NovelModule {}
