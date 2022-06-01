@@ -1,6 +1,6 @@
 import { Exclude } from 'class-transformer';
 import { PlatformType } from 'src/entity/novels.entity';
-import { IsEnum, IsNumber, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsString, IsUrl } from 'class-validator';
 
 export class NovelDto {
   @Exclude()
@@ -14,15 +14,6 @@ export class NovelDto {
 
   @IsUrl()
   thumbnail: string;
-
-  @IsNumber()
-  view: number;
-
-  @IsNumber()
-  good: number;
-
-  @IsNumber()
-  book: number;
 
   @IsUrl()
   link: string;

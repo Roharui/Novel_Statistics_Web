@@ -1,5 +1,6 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './base-entity';
+import { NovelInfoEntity } from './novel-info.entity';
 
 export enum PlatformType {
   NOVELPIA = 'novelpia',
@@ -23,14 +24,10 @@ export class NovelEntity extends BaseEntity {
   thumbnail: string;
 
   @Column()
-  view: number;
-
-  @Column()
-  good: number;
-
-  @Column()
-  book: number;
-
-  @Column()
   link: string;
+
+  @OneToMany(() => NovelInfoEntity, (info) => info.novel, {
+    cascade: ['insert', 'update', 'remove'],
+  })
+  info: NovelInfoEntity[];
 }
