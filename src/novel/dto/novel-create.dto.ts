@@ -1,5 +1,6 @@
-import { Exclude, Type } from 'class-transformer';
-import { IsArray, IsNumber, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, ValidateNested } from 'class-validator';
+import { NovelInfoDto } from './novel-info.dto';
 import { NovelDto } from './novel.dto';
 
 export class CreateNovelDto extends NovelDto {
@@ -7,21 +8,4 @@ export class CreateNovelDto extends NovelDto {
   @ValidateNested({ each: true })
   @Type(() => NovelInfoDto)
   info: NovelInfoDto[];
-}
-export class NovelInfoDto {
-  @Exclude()
-  id: number;
-
-  @IsNumber()
-  view: number;
-
-  @IsNumber()
-  good: number;
-
-  @IsNumber()
-  book: number;
-
-  constructor(partial: Partial<NovelInfoDto>) {
-    Object.assign(this, partial);
-  }
 }

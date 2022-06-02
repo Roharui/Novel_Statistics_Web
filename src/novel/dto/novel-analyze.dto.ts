@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { IsNumber } from 'class-validator';
-import { NovelInfoDto } from './novel-create.dto';
+import { NovelInfoDto } from './novel-info.dto';
 import { NovelDto } from './novel.dto';
 
 export class AnalyzeNovelDto extends NovelDto {
