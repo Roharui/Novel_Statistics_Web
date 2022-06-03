@@ -1,8 +1,11 @@
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
 import { NovelEntity } from 'src/entity/novels.entity';
 import { Connection, Repository } from 'typeorm';
 import { AnalyzeNovelDto } from './dto/novel-analyze.dto';
+import { NovelLinkDto } from './dto/novel-link.dto';
+import { CrawlingResponse } from './interfaces/response.interface';
 
 @Injectable()
 export class NovelService {
@@ -11,6 +14,7 @@ export class NovelService {
     private novelRepository: Repository<NovelEntity>,
     @InjectConnection()
     private readonly connection: Connection,
+    private readonly amqpConnection: AmqpConnection,
   ) {}
 
   async analyze(id: number): Promise<AnalyzeNovelDto> {
@@ -44,5 +48,15 @@ export class NovelService {
       view_per_good_average,
       view_per_book_average,
     };
+  }
+
+  async crawling(body: NovelLinkDto): Promise<CrawlingResponse> {
+    const response = await this.amqpConnection.request<CrawlingResponse>({
+      exchange: '',
+      routingKey: 'novel.link',
+      payload: body,
+      timeout: 10000,
+    });
+    return response;
   }
 }
