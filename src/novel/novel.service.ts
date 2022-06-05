@@ -33,12 +33,18 @@ export class NovelService {
       book: total_book,
     } = (
       await this.connection.query(`
-      select sum(nn.view) as "view", sum(nn.good) as good, sum(nn.book) as book from (
-        select * from "novel-info" ni2 
-        where 
-          ni2.id in (
-            select max(ni.id) from "novel-info" ni group by ni."novelId"
-          )
+      select 
+      sum(nn.view) as "view", 
+      sum(nn.good) as "good", 
+      sum(nn.book) as "book" from (
+      select * from "novel-info" ni2 
+      inner join "novel" n on n.id = ni2."novelId"
+      where 
+        ni2.id in (
+          select max(ni.id) from "novel-info" ni group by ni."novelId"
+            )
+        and
+        n.is_plus
       ) nn`)
     )[0];
 
@@ -60,6 +66,8 @@ export class NovelService {
             )
         and
         n."type" = '${novel.type}'
+        and
+        n.is_plus
       ) nn`)
     )[0];
 

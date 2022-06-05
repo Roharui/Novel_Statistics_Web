@@ -35,6 +35,12 @@ export class NovelEntity extends BaseEntity {
   is_end: boolean;
 
   @Column({
+    type: 'boolean',
+    default: true,
+  })
+  is_plus: boolean;
+
+  @Column({
     default: 0,
   })
   age_limit: number;
