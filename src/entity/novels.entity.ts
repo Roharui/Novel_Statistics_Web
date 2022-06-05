@@ -20,11 +20,29 @@ export class NovelEntity extends BaseEntity {
   })
   type: PlatformType;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   thumbnail: string;
 
   @Column()
   link: string;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
+  is_end: boolean;
+
+  @Column({
+    default: 0,
+  })
+  age_limit: number;
+
+  @Column({
+    default: '_',
+  })
+  author: string;
 
   @OneToMany(() => NovelInfoEntity, (info) => info.novel, {
     cascade: ['insert', 'update', 'remove'],
