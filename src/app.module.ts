@@ -21,6 +21,9 @@ import { NovelModule } from './novel/novel.module';
       synchronize: true,
       logging: true,
       entities: [NovelEntity, NovelInfoEntity],
+      ssl: {
+        rejectUnauthorized: false,
+      },
     }),
     NovelModule,
   ],
