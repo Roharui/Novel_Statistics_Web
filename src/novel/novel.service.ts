@@ -118,27 +118,9 @@ export class NovelService {
       latest_growth_good =
         (latest_info[5].good / latest_info[0].good) ** (1 / info.length) - 1;
 
-      let latest_book = info[0].book;
-
-      const sum_book = info.reduce((previousValue, currentValue) => {
-        previousValue += currentValue.book - latest_book;
-        latest_book = currentValue.book;
-        return previousValue;
-      }, 1);
-
-      latest_book = info[0].book;
-
-      const latest_sum_book = latest_info.reduce(
-        (previousValue, currentValue) => {
-          previousValue += currentValue.book - latest_book;
-          latest_book = currentValue.book;
-          return previousValue;
-        },
-        1,
-      );
-
-      serial_rate = sum_book / info.length;
-      latest_serial_rate = latest_sum_book / info.length;
+      serial_rate = (1 - info[0].book + info[l].book) / info.length;
+      latest_serial_rate =
+        (1 - latest_info[0].book + latest_info[5].book) / info.length;
     }
 
     return {
