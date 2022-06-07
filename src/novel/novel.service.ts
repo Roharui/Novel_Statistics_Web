@@ -73,10 +73,11 @@ export class NovelService {
 
     const total_novel_count = await this.novelRepository
       .createQueryBuilder('novel')
+      .where({ is_plus: true })
       .getCount();
     const type_novel_count = await this.novelRepository
       .createQueryBuilder('novel')
-      .where({ type: novel.type })
+      .where({ type: novel.type, is_plus: true })
       .getCount();
 
     const view_per_novel_count = total_view / total_novel_count;
