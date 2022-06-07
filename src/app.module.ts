@@ -10,7 +10,6 @@ import { NovelModule } from './novel/novel.module';
   imports: [
     ConfigModule.forRoot({
       envFilePath: ['.env', '.env.production'],
-      isGlobal: true,
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
