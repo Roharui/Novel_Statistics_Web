@@ -42,7 +42,7 @@ export class NovelService {
       where 
         ni2.id in (
           select max(ni.id) from "novel-info" ni group by ni."novelId"
-            )
+        )
         and
         n.is_plus
       ) nn`)
@@ -63,7 +63,7 @@ export class NovelService {
       where 
         ni2.id in (
           select max(ni.id) from "novel-info" ni group by ni."novelId"
-            )
+        )
         and
         n."type" = '${novel.type}'
         and
@@ -80,6 +80,14 @@ export class NovelService {
       .where({ type: novel.type, is_plus: true })
       .getCount();
 
+    const info = novel.info;
+    const l = info.length - 1;
+
+    const latest_info = info.slice(-5, l);
+
+    const view_per_good = info[l].view / info[l].good;
+    const view_per_book = info[l].view / info[l].book;
+
     const view_per_novel_count = total_view / total_novel_count;
     const view_per_type_novel_count = total_type_view / type_novel_count;
 
@@ -92,13 +100,63 @@ export class NovelService {
     const view_per_good_platform_average = total_type_view / total_type_good;
     const view_per_book_platform_average = total_type_view / total_type_book;
 
-    const info = novel.info;
-    const l = info.length - 1;
+    let growth_view;
+    let growth_good;
+
+    let latest_growth_view;
+    let latest_growth_good;
+
+    let serial_rate;
+    let latest_serial_rate;
+
+    if (info.length >= 5) {
+      growth_view = (info[l].view / info[0].view) ** (1 / info.length) - 1;
+      growth_good = (info[l].good / info[0].good) ** (1 / info.length) - 1;
+
+      latest_growth_view =
+        (latest_info[5].view / latest_info[0].view) ** (1 / info.length) - 1;
+      latest_growth_good =
+        (latest_info[5].good / latest_info[0].good) ** (1 / info.length) - 1;
+
+      let latest_book = info[0].book;
+
+      const sum_book = info.reduce((previousValue, currentValue) => {
+        previousValue += currentValue.book - latest_book;
+        latest_book = currentValue.book;
+        return previousValue;
+      }, 1);
+
+      latest_book = info[0].book;
+
+      const latest_sum_book = latest_info.reduce(
+        (previousValue, currentValue) => {
+          previousValue += currentValue.book - latest_book;
+          latest_book = currentValue.book;
+          return previousValue;
+        },
+        1,
+      );
+
+      serial_rate = sum_book / info.length;
+      latest_serial_rate = latest_sum_book / info.length;
+    }
 
     return {
       ...novel,
-      view_per_good: info[l].view / info[l].good,
-      view_per_book: info[l].view / info[l].book,
+
+      cur_info: info[l],
+
+      growth_view,
+      growth_good,
+
+      latest_growth_view,
+      latest_growth_good,
+
+      serial_rate,
+      latest_serial_rate,
+
+      view_per_good,
+      view_per_book,
 
       view_per_good_average,
       view_per_book_average,

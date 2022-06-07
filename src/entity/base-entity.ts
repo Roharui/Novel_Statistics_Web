@@ -3,8 +3,8 @@ import { CreateDateColumn, PrimaryGeneratedColumn } from 'typeorm';
 export class BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
-  @CreateDateColumn({ nullable: true, select: false })
+  @CreateDateColumn({ nullable: true })
   createdAt: Date;
-  @CreateDateColumn({ nullable: true, select: false })
+  @CreateDateColumn({ nullable: true })
   updatedAt: Date;
 }
