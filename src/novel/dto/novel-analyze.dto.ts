@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { NovelStaticDto } from './novel-statics.dto';
+import { NovelStatisticsDto } from './novel-statistics.dto';
 import { NovelDto } from './novel.dto';
 
 export class AnalyzeNovelDto {
@@ -8,17 +8,17 @@ export class AnalyzeNovelDto {
 
   // ===
 
-  @Type(() => NovelStaticDto)
-  reader_prefer?: NovelStaticDto;
+  @Type(() => NovelStatisticsDto)
+  reader_prefer?: NovelStatisticsDto;
 
-  @Type(() => NovelStaticDto)
-  view_avg?: NovelStaticDto;
+  @Type(() => NovelStatisticsDto)
+  view_avg?: NovelStatisticsDto;
 
-  @Type(() => NovelStaticDto)
-  reading_rate?: NovelStaticDto;
+  @Type(() => NovelStatisticsDto)
+  reading_rate?: NovelStatisticsDto;
 
-  @Type(() => NovelStaticDto)
-  upload_rate?: NovelStaticDto;
+  @Type(() => NovelStatisticsDto)
+  upload_rate?: NovelStatisticsDto;
 
   constructor(partial: Partial<AnalyzeNovelDto>) {
     Object.assign(this, partial);
