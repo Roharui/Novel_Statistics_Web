@@ -3,9 +3,9 @@ import { BaseEntity } from './base-entity';
 import { NovelInfoEntity } from './novel-info.entity';
 
 export enum PlatformType {
-  NOVELPIA = 'novelpia',
-  MUNPIA = 'munpia',
-  KAKAOPAGE = 'kakaopage',
+  NOVELPIA = 'NOVELPIA',
+  MUNPIA = 'MUNPIA',
+  KAKAOPAGE = 'KAKAOPAGE',
 }
 
 @Entity('novel')
@@ -45,13 +45,14 @@ export class NovelEntity extends BaseEntity {
   })
   age_limit: number;
 
-  @Column({
-    default: '_',
-  })
+  @Column()
   author: string;
 
+  @Column()
+  description: string;
+
   @OneToMany(() => NovelInfoEntity, (info) => info.novel, {
-    cascade: ['insert', 'update', 'remove'],
+    onDelete: 'CASCADE',
   })
   info: NovelInfoEntity[];
 }

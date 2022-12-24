@@ -30,6 +30,9 @@ export class NovelDto {
   @IsString()
   author: string;
 
+  @IsString()
+  description: string;
+
   constructor(partial: Partial<NovelDto>) {
     Object.assign(this, partial);
   }

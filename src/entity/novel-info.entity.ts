@@ -1,9 +1,21 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
-import { BaseEntity } from './base-entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { NovelEntity } from './novels.entity';
 
 @Entity('novel-info')
-export class NovelInfoEntity extends BaseEntity {
+export class NovelInfoEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @CreateDateColumn()
+  created_at!: Date;
+
   @Column()
   view: number;
 
@@ -13,6 +25,7 @@ export class NovelInfoEntity extends BaseEntity {
   @Column()
   book: number;
 
+  @JoinColumn({ name: 'novel_id' })
   @ManyToOne(() => NovelEntity, (novel) => novel.info)
   novel: NovelEntity;
 }

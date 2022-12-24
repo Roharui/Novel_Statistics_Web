@@ -1,178 +1,353 @@
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { Injectable } from '@nestjs/common';
-import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { NovelEpisodeEntity } from 'src/entity/novel-episode.entity';
+import { NovelInfoEntity } from 'src/entity/novel-info.entity';
 import { NovelEntity } from 'src/entity/novels.entity';
-import { Connection, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AnalyzeNovelDto } from './dto/novel-analyze.dto';
-import { NovelLinkDto } from './dto/novel-link.dto';
-import { CrawlingResponse } from './interfaces/response.interface';
 
 @Injectable()
 export class NovelService {
   constructor(
     @InjectRepository(NovelEntity)
     private novelRepository: Repository<NovelEntity>,
-    @InjectConnection()
-    private readonly connection: Connection,
-    private readonly amqpConnection: AmqpConnection,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {}
 
-  async analyze(dto: NovelLinkDto): Promise<AnalyzeNovelDto> {
-    let novel = await this.selectLink(dto.link);
-
-    let search_response = null;
+  async analyze(url: string): Promise<AnalyzeNovelDto> {
+    const novel = await this.selectLink(url);
 
     if (novel === null) {
-      search_response = (await this.crawling(dto)) || {};
-      novel = await this.selectLink(dto.link);
+      throw new BadRequestException('등록되지 않는 소설입니다.');
     }
 
-    const {
-      view: total_view,
-      good: total_good,
-      book: total_book,
-    } = (
-      await this.connection.query(`
-      select 
-      sum(nn.view) as "view", 
-      sum(nn.good) as "good", 
-      sum(nn.book) as "book" from (
-      select * from "novel-info" ni2 
-      inner join "novel" n on n.id = ni2."novelId"
-      where 
-        ni2.id in (
-          select max(ni.id) from "novel-info" ni group by ni."novelId"
-        )
-        and
-        n.is_plus
-      ) nn`)
-    )[0];
+    const reader_prefer_cur = await this.dataSource
+      .createQueryBuilder()
+      .select([])
+      .addSelect('cur')
+      .addSelect('percentage')
+      .from(
+        (sub) =>
+          sub
+            .select('(ni."good"::float / ni."view") * 100', 'cur')
+            .addSelect(
+              'PERCENT_RANK() OVER (ORDER BY (ni."good"::float / ni."view") DESC)',
+              'percentage',
+            )
+            .addSelect('ni.novel_id')
+            .from(NovelInfoEntity, 'ni'),
+        'rp',
+      )
+      .where('rp.novel_id = :id', { id: novel.id })
+      .getRawOne();
 
-    const {
-      view: total_type_view,
-      good: total_type_good,
-      book: total_type_book,
-    } = (
-      await this.connection.query(`
-      select 
-      sum(nn.view) as "view", 
-      sum(nn.good) as "good", 
-      sum(nn.book) as "book" from (
-      select * from "novel-info" ni2 
-      inner join "novel" n on n.id = ni2."novelId"
-      where 
-        ni2.id in (
-          select max(ni.id) from "novel-info" ni group by ni."novelId"
-        )
-        and
-        n."type" = '${novel.type}'
-        and
-        n.is_plus
-      ) nn`)
-    )[0];
+    const reader_prefer_avg = await this.dataSource
+      .createQueryBuilder()
+      .select([])
+      .addSelect(
+        (sub) =>
+          sub
+            .select('avg((ni."good"::float / ni."view")) * 100')
+            .from(NovelInfoEntity, 'ni'),
+        'avg',
+      )
+      .addSelect(
+        (sub) =>
+          sub
+            .select('avg((ni."good"::float / ni."view")) * 100')
+            .from(NovelInfoEntity, 'ni')
+            .innerJoin('novel', 'n', 'n.id = ni.novel_id')
+            .where('n."type" = :type', { type: novel.type }),
+        'content_avg',
+      )
+      .fromDummy()
+      .getRawOne();
 
-    const total_novel_count = await this.novelRepository
-      .createQueryBuilder('novel')
-      .where({ is_plus: true })
-      .getCount();
-    const type_novel_count = await this.novelRepository
-      .createQueryBuilder('novel')
-      .where({ type: novel.type, is_plus: true })
-      .getCount();
+    const view_avg_cur = await this.dataSource
+      .createQueryBuilder()
+      .select('cur')
+      .addSelect('percentage')
+      .from(
+        (sub) =>
+          sub
+            .select('(ni."view"::float / ni."book")', 'cur')
+            .addSelect(
+              'PERCENT_RANK() OVER (ORDER BY (ni."view"::float / ni."book") DESC)',
+              'percentage',
+            )
+            .addSelect('ni.novel_id')
+            .from(NovelInfoEntity, 'ni'),
+        'rp',
+      )
+      .where('rp.novel_id = :id', { id: novel.id })
+      .getRawOne();
 
-    const info = novel.info;
-    const l = info.length - 1;
+    const view_avg_avg = await this.dataSource
+      .createQueryBuilder()
+      .select([])
+      .addSelect(
+        (sub) =>
+          sub
+            .select('avg((ni."view"::float / ni."book"))')
+            .from(NovelInfoEntity, 'ni'),
+        'avg',
+      )
+      .addSelect(
+        (sub) =>
+          sub
+            .select('avg((ni."view"::float / ni."book"))')
+            .from(NovelInfoEntity, 'ni')
+            .innerJoin('novel', 'n', 'n.id = ni.novel_id')
+            .where('n."type" = :type', { type: novel.type }),
+        'content_avg',
+      )
+      .fromDummy()
+      .getRawOne();
 
-    const latest_info = info.slice(-5, l);
+    const read_rate_cur = await this.dataSource
+      .createQueryBuilder()
+      .select('tb.cur', 'cur')
+      .addSelect('tb.percentage', 'percentage')
+      .from(
+        (sub) =>
+          sub
+            .select('ed_ne.novel_id')
+            .addSelect(
+              '(1 - power((ed_ne."view"::float / st_ne."view"), (1::float / (ed_ne.idx - st_ne.idx)))) * 100',
+              'cur',
+            )
+            .addSelect(
+              'PERCENT_RANK() OVER (ORDER BY (1 - power((ed_ne."view"::float / st_ne."view"), (1::float / (ed_ne.idx - st_ne.idx)))) asc)',
+              'percentage',
+            )
+            .from(
+              (sub) =>
+                sub
+                  .select('ne.novel_id')
+                  .addSelect('ne.view', 'view')
+                  .addSelect('idx.idx')
+                  .from(NovelEpisodeEntity, 'ne')
+                  .innerJoin(
+                    (sub) =>
+                      sub
+                        .select('ne.novel_id')
+                        .addSelect('max(ne.idx)', 'idx')
+                        .from(NovelEpisodeEntity, 'ne')
+                        .groupBy('ne.novel_id')
+                        .having('max(ne.idx) >= 15'),
+                    'idx',
+                    'idx.novel_id = ne.novel_id and idx.idx = ne.idx',
+                  ),
+              'ed_ne',
+            )
+            .innerJoin(
+              (sub) =>
+                sub
+                  .select('ne.novel_id')
+                  .addSelect('ne.view', 'view')
+                  .addSelect('idx.idx')
+                  .from(NovelEpisodeEntity, 'ne')
+                  .innerJoin(
+                    (sub) =>
+                      sub
+                        .select('ne.novel_id')
+                        .addSelect('3', 'idx')
+                        .from(NovelEpisodeEntity, 'ne')
+                        .groupBy('ne.novel_id')
+                        .having('max(ne.idx) >= 15'),
+                    'idx',
+                    'idx.novel_id = ne.novel_id and idx.idx = ne.idx',
+                  ),
+              'st_ne',
+              'st_ne.novel_id = ed_ne.novel_id',
+            ),
+        'tb',
+      )
+      .where('tb.novel_id = :id', { id: novel.id })
+      .getRawOne();
 
-    const view_per_good = info[l].view / info[l].good;
-    const view_per_book = info[l].view / info[l].book;
+    const { avg: read_rate_avg } = await this.dataSource
+      .createQueryBuilder()
+      .select(
+        'avg(1 - power((ed_ne."view"::float / st_ne."view"), (1::float / (ed_ne.idx - st_ne.idx)))) * 100',
+        'avg',
+      )
+      .from(
+        (sub) =>
+          sub
+            .select('ne.novel_id')
+            .addSelect('ne.view', 'view')
+            .addSelect('idx.idx')
+            .from(NovelEpisodeEntity, 'ne')
+            .innerJoin(
+              (sub) =>
+                sub
+                  .select('ne.novel_id')
+                  .addSelect('max(ne.idx) - 3', 'idx')
+                  .from(NovelEpisodeEntity, 'ne')
+                  .groupBy('ne.novel_id')
+                  .having('max(ne.idx) >= 15'),
+              'idx',
+              'idx.novel_id = ne.novel_id and idx.idx = ne.idx',
+            ),
+        'ed_ne',
+      )
+      .innerJoin(
+        (sub) =>
+          sub
+            .select('ne.novel_id')
+            .addSelect('ne.view', 'view')
+            .addSelect('idx.idx')
+            .from(NovelEpisodeEntity, 'ne')
+            .innerJoin(
+              (sub) =>
+                sub
+                  .select('ne.novel_id')
+                  .addSelect('3', 'idx')
+                  .from(NovelEpisodeEntity, 'ne')
+                  .groupBy('ne.novel_id')
+                  .having('max(ne.idx) >= 15'),
+              'idx',
+              'idx.novel_id = ne.novel_id and idx.idx = ne.idx',
+            ),
+        'st_ne',
+        'st_ne.novel_id = ed_ne.novel_id',
+      )
+      .getRawOne();
 
-    const view_per_novel_count = total_view / total_novel_count;
-    const view_per_type_novel_count = total_type_view / type_novel_count;
+    const { avg: read_rate_cavg } = await this.dataSource
+      .createQueryBuilder()
+      .select(
+        'avg(1 - power((ed_ne."view"::float / st_ne."view"), (1::float / (ed_ne.idx - st_ne.idx)))) * 100',
+        'avg',
+      )
+      .from(
+        (sub) =>
+          sub
+            .select('ne.novel_id')
+            .addSelect('ne.view', 'view')
+            .addSelect('idx.idx')
+            .from(NovelEpisodeEntity, 'ne')
+            .innerJoin(
+              (sub) =>
+                sub
+                  .select('ne.novel_id')
+                  .addSelect('max(ne.idx) - 3', 'idx')
+                  .from(NovelEpisodeEntity, 'ne')
+                  .groupBy('ne.novel_id')
+                  .having('max(ne.idx) >= 15'),
+              'idx',
+              'idx.novel_id = ne.novel_id and idx.idx = ne.idx',
+            ),
+        'ed_ne',
+      )
+      .innerJoin(
+        (sub) =>
+          sub
+            .select('ne.novel_id')
+            .addSelect('ne.view', 'view')
+            .addSelect('idx.idx')
+            .from(NovelEpisodeEntity, 'ne')
+            .innerJoin(
+              (sub) =>
+                sub
+                  .select('ne.novel_id')
+                  .addSelect('3', 'idx')
+                  .from(NovelEpisodeEntity, 'ne')
+                  .groupBy('ne.novel_id')
+                  .having('max(ne.idx) >= 15'),
+              'idx',
+              'idx.novel_id = ne.novel_id and idx.idx = ne.idx',
+            ),
+        'st_ne',
+        'st_ne.novel_id = ed_ne.novel_id',
+      )
+      .innerJoin(NovelEntity, 'n', 'n.id = ed_ne.novel_id')
+      .where(' n."type" = :type', { type: novel.type })
+      .getRawOne();
 
-    const good_per_novel_count = total_good / total_novel_count;
-    const good_per_type_novel_count = total_type_good / type_novel_count;
+    const upload_rate_cur = await this.dataSource
+      .createQueryBuilder()
+      .select('tb.cur', 'cur')
+      .addSelect('tb.percentage', 'percentage')
+      .from(
+        (sub) =>
+          sub
+            .select('ne.novel_id', 'novel_id')
+            .addSelect('(count(ne."idx") / 21::float)', 'cur')
+            .addSelect(
+              'PERCENT_RANK() OVER (ORDER BY (count(ne."idx") / 21::float) desc)',
+              'percentage',
+            )
+            .from(NovelEpisodeEntity, 'ne')
+            .where('ne."date" >= now() - INTERVAL \'21 day\'')
+            .groupBy('ne.novel_id'),
+        'tb',
+      )
+      .where('tb.novel_id  = :id', { id: novel.id })
+      .getRawOne();
 
-    const view_per_good_average = total_view / total_good;
-    const view_per_book_average = total_view / total_book;
+    const { avg: upload_rate_avg } = await this.dataSource
+      .createQueryBuilder()
+      .select('avg(x.cur)', 'avg')
+      .from(
+        (sub) =>
+          sub
+            .select('ne.novel_id', 'novel_id')
+            .addSelect('(count(ne."idx") / 21::float)', 'cur')
+            .addSelect(
+              'PERCENT_RANK() OVER (ORDER BY (count(ne."idx") / 21::float) desc)',
+              'percentage',
+            )
+            .from(NovelEpisodeEntity, 'ne')
+            .where('ne."date" >= now() - INTERVAL \'21 day\'')
+            .groupBy('ne.novel_id'),
+        'x',
+      )
+      .getRawOne();
 
-    const view_per_good_platform_average = total_type_view / total_type_good;
-    const view_per_book_platform_average = total_type_view / total_type_book;
-
-    let growth_view;
-    let growth_good;
-
-    let latest_growth_view;
-    let latest_growth_good;
-
-    let serial_rate;
-    let latest_serial_rate;
-
-    if (info.length >= 5) {
-      growth_view = (info[l].view / info[0].view) ** (1 / info.length) - 1;
-      growth_good = (info[l].good / info[0].good) ** (1 / info.length) - 1;
-
-      latest_growth_view =
-        (latest_info[5].view / latest_info[0].view) ** (1 / info.length) - 1;
-      latest_growth_good =
-        (latest_info[5].good / latest_info[0].good) ** (1 / info.length) - 1;
-
-      serial_rate = (1 - info[0].book + info[l].book) / info.length;
-      latest_serial_rate =
-        (1 - latest_info[0].book + latest_info[5].book) / info.length;
-    }
+    const { avg: upload_rate_cavg } = await this.dataSource
+      .createQueryBuilder()
+      .select('avg(x.cur)', 'avg')
+      .from(
+        (sub) =>
+          sub
+            .select('ne.novel_id', 'novel_id')
+            .addSelect('(count(ne."idx") / 21::float)', 'cur')
+            .addSelect(
+              'PERCENT_RANK() OVER (ORDER BY (count(ne."idx") / 21::float) desc)',
+              'percentage',
+            )
+            .from(NovelEpisodeEntity, 'ne')
+            .innerJoin(NovelEntity, 'n', 'n.id = ne.novel_id')
+            .where('ne."date" >= now() - INTERVAL \'21 day\'')
+            .andWhere('n.type = :type', { type: novel.type })
+            .groupBy('ne.novel_id'),
+        'x',
+      )
+      .getRawOne();
 
     return {
-      ...novel,
-
-      cur_info: info[l],
-
-      growth_view,
-      growth_good,
-
-      latest_growth_view,
-      latest_growth_good,
-
-      serial_rate,
-      latest_serial_rate,
-
-      view_per_good,
-      view_per_book,
-
-      view_per_good_average,
-      view_per_book_average,
-
-      view_per_novel_count,
-      view_per_type_novel_count,
-
-      total_novel_count,
-      type_novel_count,
-
-      good_per_novel_count,
-      good_per_type_novel_count,
-
-      view_per_good_platform_average,
-      view_per_book_platform_average,
-
-      search_response,
+      novel,
+      reader_prefer: { ...reader_prefer_avg, ...reader_prefer_cur },
+      view_avg: { ...view_avg_cur, ...view_avg_avg },
+      reading_rate: {
+        ...read_rate_cur,
+        avg: read_rate_avg,
+        content_avg: read_rate_cavg,
+      },
+      upload_rate: {
+        ...upload_rate_cur,
+        avg: upload_rate_avg,
+        content_avg: upload_rate_cavg,
+      },
     };
   }
 
   private async selectLink(link: string) {
     return await this.novelRepository.findOne({
-      relations: ['info'],
       where: { link },
     });
-  }
-
-  private async crawling(body: NovelLinkDto): Promise<CrawlingResponse> {
-    const response = await this.amqpConnection.request<CrawlingResponse>({
-      exchange: '',
-      routingKey: 'novel.link',
-      payload: body,
-      timeout: 10000,
-    });
-    return response;
   }
 }

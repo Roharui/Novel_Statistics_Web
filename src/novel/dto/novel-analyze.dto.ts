@@ -1,95 +1,26 @@
-import { Transform } from 'class-transformer';
-import { IsArray, IsNumber, IsObject } from 'class-validator';
-import { NovelInfoDto } from './novel-info.dto';
-import { SearchResponseDto } from './novel-search.dto';
+import { Type } from 'class-transformer';
+import { NovelStaticDto } from './novel-statics.dto';
 import { NovelDto } from './novel.dto';
 
-function ToFixed() {
-  return Transform(({ value }) =>
-    value ? parseFloat(value.toFixed(4)) : null,
-  );
-}
-
-export class AnalyzeNovelDto extends NovelDto {
-  @IsArray()
-  @Transform(({ value }) => {
-    return value.map((x) => new NovelInfoDto(x));
-  })
-  info: NovelInfoDto[];
-
-  @IsObject()
-  @Transform(({ value }) => {
-    return new NovelInfoDto(value);
-  })
-  cur_info: NovelInfoDto;
+export class AnalyzeNovelDto {
+  @Type(() => NovelDto)
+  novel: NovelDto;
 
   // ===
 
-  @ToFixed()
-  @IsNumber()
-  growth_view: number;
-  @ToFixed()
-  @IsNumber()
-  growth_good: number;
+  @Type(() => NovelStaticDto)
+  reader_prefer?: NovelStaticDto;
 
-  @ToFixed()
-  @IsNumber()
-  latest_growth_view: number;
-  @ToFixed()
-  @IsNumber()
-  latest_growth_good: number;
+  @Type(() => NovelStaticDto)
+  view_avg?: NovelStaticDto;
 
-  @ToFixed()
-  @IsNumber()
-  serial_rate: number;
-  @ToFixed()
-  @IsNumber()
-  latest_serial_rate: number;
+  @Type(() => NovelStaticDto)
+  reading_rate?: NovelStaticDto;
 
-  // ===
+  @Type(() => NovelStaticDto)
+  upload_rate?: NovelStaticDto;
 
-  @ToFixed()
-  @IsNumber()
-  view_per_good: number;
-  @ToFixed()
-  @IsNumber()
-  view_per_book: number;
-
-  @ToFixed()
-  @IsNumber()
-  total_novel_count: number;
-  @ToFixed()
-  @IsNumber()
-  type_novel_count: number;
-
-  @ToFixed()
-  @IsNumber()
-  view_per_novel_count: number;
-  @ToFixed()
-  @IsNumber()
-  view_per_type_novel_count: number;
-
-  @ToFixed()
-  @IsNumber()
-  good_per_novel_count: number;
-  @ToFixed()
-  @IsNumber()
-  good_per_type_novel_count: number;
-
-  @ToFixed()
-  @IsNumber()
-  view_per_good_average: number;
-  @ToFixed()
-  @IsNumber()
-  view_per_book_average: number;
-
-  @ToFixed()
-  @IsNumber()
-  view_per_good_platform_average: number;
-  @ToFixed()
-  @IsNumber()
-  view_per_book_platform_average: number;
-
-  @IsObject()
-  search_response: SearchResponseDto;
+  constructor(partial: Partial<AnalyzeNovelDto>) {
+    Object.assign(this, partial);
+  }
 }

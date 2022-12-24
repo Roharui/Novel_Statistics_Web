@@ -1,5 +1,5 @@
 import { Exclude } from 'class-transformer';
-import { IsDate, IsNumber } from 'class-validator';
+import { IsNumber } from 'class-validator';
 
 export class NovelInfoDto {
   @Exclude()
@@ -13,12 +13,6 @@ export class NovelInfoDto {
 
   @IsNumber()
   book: number;
-
-  @IsDate()
-  createdAt: Date;
-
-  @IsDate()
-  updatedAt: Date;
 
   constructor(partial: Partial<NovelInfoDto>) {
     Object.assign(this, partial);
