@@ -1,3 +1,4 @@
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -17,6 +18,11 @@ import { NovelModule } from './novel/novel.module';
       synchronize: false,
       logging: process.env.NODE_ENV == 'dev',
       entities: [NovelEntity, NovelInfoEntity, NovelEpisodeEntity],
+    }),
+    RedisModule.forRoot({
+      config: {
+        url: process.env.REDIS_URL,
+      },
     }),
     NovelModule,
   ],

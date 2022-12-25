@@ -9,16 +9,16 @@ export class AnalyzeNovelDto {
   // ===
 
   @Type(() => NovelStatisticsDto)
-  reader_prefer?: NovelStatisticsDto;
+  reader_prefer: NovelStatisticsDto;
 
   @Type(() => NovelStatisticsDto)
-  view_avg?: NovelStatisticsDto;
+  view_avg: NovelStatisticsDto;
 
   @Type(() => NovelStatisticsDto)
-  reading_rate?: NovelStatisticsDto;
+  reading_rate: NovelStatisticsDto;
 
   @Type(() => NovelStatisticsDto)
-  upload_rate?: NovelStatisticsDto;
+  upload_rate: NovelStatisticsDto;
 
   constructor(partial: Partial<AnalyzeNovelDto>) {
     Object.assign(this, partial);

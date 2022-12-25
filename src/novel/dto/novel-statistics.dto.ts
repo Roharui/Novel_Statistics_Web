@@ -16,7 +16,7 @@ export class NovelStatisticsDto {
 
   @Round()
   @IsNumber()
-  content_avg: number;
+  pavg: number;
 
   constructor(partial: Partial<NovelStatisticsDto>) {
     Object.assign(this, partial);
