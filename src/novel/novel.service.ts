@@ -173,12 +173,17 @@ export class NovelService {
         .where('tb.novel_id  = :id', { id: novel.id })
         .getRawOne();
 
+      const episode = await this.episode(novel.id);
+      const growth = await this.growth(novel.id);
+
       redis_result = {
         novel,
         reader_prefer: reader_prefer_cur,
         view_avg: view_avg_cur,
         reading_rate: read_rate_cur,
         upload_rate: upload_rate_cur,
+        episode,
+        growth,
       };
 
       await this.client.set(
@@ -465,6 +470,28 @@ export class NovelService {
     }
 
     return MergeRecursive(total_avg, platform_avg);
+  }
+
+  private async episode(id: number) {
+    return await this.dataSource
+      .createQueryBuilder()
+      .select()
+      .from(NovelEpisodeEntity, 'ne')
+      .where('ne.novel_id = :id', { id })
+      .orderBy('ne.idx', 'DESC')
+      .limit(20)
+      .getRawMany();
+  }
+
+  private async growth(id: number) {
+    return await this.dataSource
+      .createQueryBuilder()
+      .select()
+      .from(NovelInfoEntity, 'ni')
+      .where('ni.novel_id = :id', { id })
+      .orderBy('ni.id', 'DESC')
+      .limit(20)
+      .getRawMany();
   }
 
   private async selectLink(link: string) {

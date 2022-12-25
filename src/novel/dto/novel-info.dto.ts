@@ -1,9 +1,15 @@
 import { Exclude } from 'class-transformer';
-import { IsNumber } from 'class-validator';
+import { IsDate, IsNumber } from 'class-validator';
 
 export class NovelInfoDto {
   @Exclude()
   id: number;
+
+  @Exclude()
+  novel_id: Date;
+
+  @IsDate()
+  created_at: Date;
 
   @IsNumber()
   view: number;
