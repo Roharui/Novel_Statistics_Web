@@ -2,6 +2,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
 import { NovelEpisodeEntity } from './entity/novel-episode.entity';
 import { NovelInfoEntity } from './entity/novel-info.entity';
 import { NovelEntity } from './entity/novels.entity';
@@ -26,5 +27,6 @@ import { NovelModule } from './novel/novel.module';
     }),
     NovelModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ClassSerializerInterceptor,
   Controller,
   Get,
@@ -15,6 +16,7 @@ export class NovelController {
 
   @Get()
   async analyze(@Query('url') url: string) {
+    if (!url) return new BadRequestException();
     return new AnalyzeNovelDto(await this.novelService.analyze(url));
   }
 }
